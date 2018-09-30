@@ -42,16 +42,17 @@ namespace Login
 
             SqlDataReader reader = cmd.ExecuteReader();
 
-            if (reader.Read())
-            {
+            if (reader.Read()) {
+
+                object userIDobj = reader["id"];
+                string userID = userIDobj.ToString();
                 con.Close();
                 MessageBox.Show("You are logged in successfully");
 
-                new Form2().Show();
+                new Form2(userID).Show();
                 this.Hide();
-            }
-            else
-            {
+            } else {
+
                 con.Close();
                 MessageBox.Show("You entered a wrong username or password");
             }
@@ -60,23 +61,19 @@ namespace Login
 
         private void registerButton_Click(object sender, EventArgs e)
         {
-            if (username.Text != "" && password.Text != "")
-            {
-
+            if (username.Text != "" && password.Text != "") {
                 cmd = new SqlCommand("SELECT * FROM Employee WHERE Name = @name OR Password = @password", con);
                 con.Open();
                 cmd.Parameters.AddWithValue("@name", username.Text);
                 cmd.Parameters.AddWithValue("@password", password.Text);
-
                 SqlDataReader reader = cmd.ExecuteReader();
 
-                if (reader.Read())
-                {
+                if (reader.Read()) {
+
                     con.Close();
                     MessageBox.Show("This username or password has already been taken.");
-                }
-                else
-                {
+                } else {
+
                     con.Close();
                     cmd = new SqlCommand("insert into Employee(Name,Password) values(@name,@password)", con);
                     con.Open();
@@ -86,9 +83,8 @@ namespace Login
                     con.Close();
                     MessageBox.Show("Successfully registered");
                 }
-            }
-            else
-            {
+            } else {
+
                 MessageBox.Show("Please Provide Details!");
             }
         }

@@ -23,18 +23,25 @@ namespace Login
         int hours;
         Task currentTask = new Task();
         bool isPaused = true;
+        DateTime startTime;
+        DateTime endTime;
         DateTime pauseTime;
         DateTime resumeTime;
+        double workingTime;
+        double nonWorkingTime;
 
-        public Form2()
+        string userIDvalue;
+
+        public Form2(string userID)
         {
             InitializeComponent();
             seconds = minutes = hours = 0;
+            userIDvalue = userID;
         }
 
         private void Form2_Load(object sender, EventArgs e)
         {
-
+            loadHoursTable();
         }
         private void Form2_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -73,51 +80,84 @@ namespace Login
 
         private void startButton_Click(object sender, EventArgs e)
         {
+            if (taskName.Text != string.Empty) {
 
-            if (textBox1.Text != string.Empty)
-            {
-                currentTask = new Task(textBox1.Text);
+                startTime = DateTime.Now;
+                currentTask = new Task(taskName.Text);
                 timer1.Start();
-            }
-        }
+                startButton.Enabled = false;
+                pauseButton.Enabled = true;
+                stopButton.Enabled = true;
+            } else {
 
-        private void button3_Click(object sender, EventArgs e)
-        {
-            timer1.Stop();
-            currentTask.EndTime = DateTime.Now;
-            currentTask.WorkingTime = currentTask.EndTime.Subtract(currentTask.StartTime);
-            currentTask.WorkingTime -= currentTask.NonWorkingTime;
-            seconds = minutes = hours = 0;
-            xHours.Text = appendZero(hours);
-            xMinutes.Text = appendZero(minutes);
-            xSeconds.Text = appendZero(seconds);
-            textBox1.Text = string.Empty;
+                MessageBox.Show("Please enter a task name");
+            }
         }
 
         private void pauseButton_Click(object sender, EventArgs e)
         {
-            if (isPaused)
-            {
+            if (isPaused) {
+
                 timer1.Stop();
                 pauseTime = DateTime.Now;
                 pauseButton.Text = "Resume";
+                stopButton.Enabled = false;
                 isPaused = false;
-            }
-            else
-            {
+            } else {
+
                 resumeTime = DateTime.Now;
                 pauseButton.Text = "Pause";
+                stopButton.Enabled = true;
                 timer1.Start();
-                currentTask.NonWorkingTime += resumeTime.Subtract(pauseTime);
                 isPaused = true;
             }
         }
 
-        private void newTaskToolStripMenuItem_Click(object sender, EventArgs e)
+        private void stopButton_Click(object sender, EventArgs e)
         {
-            Form2 fr2 = new Form2();
-            fr2.Show();
+            timer1.Stop();
+            endTime = DateTime.Now;
+           
+            TimeSpan breakHours = (resumeTime - pauseTime);
+            var breakTime = breakHours.ToString(@"hh\:mm\:ss");
+
+            TimeSpan hoursWorked = ((endTime - startTime) - (resumeTime - pauseTime));
+            var workedTime = hoursWorked.ToString(@"hh\:mm\:ss");
+
+            cmd = new SqlCommand("insert into Hours(workingHours, nonWorkingHours, task, employeeID) values(@workingHours, @nonWorkingHours, @task, @employeeID)", con);
+            con.Open();
+            cmd.Parameters.AddWithValue("@workingHours", workedTime);
+            cmd.Parameters.AddWithValue("@nonWorkingHours", breakTime);
+            cmd.Parameters.AddWithValue("@task", taskName.Text);
+            cmd.Parameters.AddWithValue("@employeeID", userIDvalue);
+            cmd.ExecuteNonQuery();
+            con.Close();
+            MessageBox.Show("Successfully added record");
+
+            seconds = minutes = hours = 0;
+            xHours.Text = appendZero(hours);
+            xMinutes.Text = appendZero(minutes);
+            xSeconds.Text = appendZero(seconds);
+            taskName.Text = string.Empty;
+            startButton.Enabled = true;
+            pauseButton.Enabled = false;
+            stopButton.Enabled = false;
+
+            loadHoursTable();
         }
 
+        private void loadHoursTable() {
+
+            cmd = new SqlCommand("SELECT * FROM Hours", con);
+            con.Open();
+            // SqlDataReader reader = cmd.ExecuteReader();
+
+            SqlDataAdapter data = new SqlDataAdapter(cmd);
+            DataTable table = new DataTable();
+            data.Fill(table);
+            dataGridView1.DataSource = new BindingSource(table, null);
+            // dataGridView1.DataSource = dt;
+            con.Close();
+        }
     }
 }
